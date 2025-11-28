@@ -1,7 +1,9 @@
-# CONCURRENCY COUNTER v1.1
+# CONCURRENCY COUNTER v1.2
 # by: Leif Gatmaitan
 # created: 28/11/2025
 # last_update: 29/11/2025
+
+import csv
 
 from cc_convert_time import convert_time
 from cc_count_concurrency import count_concurrency
@@ -60,7 +62,19 @@ for chat_id in identified[0]:
 for chat_id in identified[1]:
 	concurrency_triple.append(chat_id)
 
-print(concurrency_single)
-print(concurrency_double)
-print(concurrency_triple)
-print(len(concurrency_single) + len(concurrency_double) + len(concurrency_triple))
+output_data = [['Chat ID', 'Concurrency']]
+
+for chat_id in concurrency_single:
+	output_data.append([chat_id, 1])
+for chat_id in concurrency_double:
+	output_data.append([chat_id, 2])
+for chat_id in concurrency_triple:
+	output_data.append([chat_id, 3])
+
+output_path = 'concurrency_output.csv'
+
+with open(output_path, 'w', newline='') as csvfile:
+	csv_writer = csv.writer(csvfile)
+	csv_writer.writerows(output_data)
+
+print(f"Successfully created output at '{output_path}''.")
