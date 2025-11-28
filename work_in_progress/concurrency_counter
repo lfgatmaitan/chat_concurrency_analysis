@@ -1,80 +1,40 @@
-# CONCURRENCY COUNTER v1
+# CONCURRENCY COUNTER v1.1
 # by: Leif Gatmaitan
-# date: 28/11/2025
+# created: 28/11/2025
+# last_update: 29/11/2025
 
-from datetime import datetime
+from cc_convert_time import convert_time
+from cc_count_concurrency import count_concurrency
+from cc_identify_2or3 import identify_count
 
-filename = 'test.csv' # enter filename or source here here
+filename = 'test.csv'
+# enter .csv filename or source here here
+# table columns must be in the ff format: Convo ID, start, end
+# times must be in 24h format
+
 with open(filename) as file:
 	content = file.readlines()
 
 data = []
-# data will contain lists in the following order:
-# [convo_id, start, end]
-
 for line in content:
 	data.append(line.rstrip().split(","))
+data = convert_time(data)
+del data[0] # deletes the header
 
-#csv files are in string, will convert times to python format here
-for line in data:
-	try:
-		time = datetime.strptime(line[1], "%H:%M:%S").time()
-	except ValueError: #encounters valueerror in first line header
-		pass
-	else:
-		line[1] = time
-
-	try:
-		time = datetime.strptime(line[2], "%H:%M:%S").time()
-	except ValueError:
-		pass
-	else:
-		line[2] = time
-#time conversion ends here
-
-
-concurrencies = {}
-# I will list a dictionary with the following specs
+concurrencies = count_concurrency(data)
+# count_concurrency() returns a dictionary
 # key is the conversation id
-# value, is the list of the conversation ID's it overlaps with, including itself
+# value, is the list of the conversation ID's it overlaps with, including self
 
-for chat in data:
-	if chat[0] == 'Conversation ID':
-		continue #prevents error in the header, can also use try except block
 
-	concurrencies[chat[0]] = []
-
-for chat_1 in data:
-	if chat_1[0] == 'Conversation ID':
-		continue #prevents error in the header, can also use try except block
-	convo_id_1 = chat_1[0]
-	start_1 = chat_1[1]
-	end_1 = chat_1[2]
-	
-	
-	for chat_2 in data:
-		if chat_2[0] == 'Conversation ID':
-			continue #see comments above
-		convo_id_2 = chat_2[0]
-		start_2 = chat_2[1]
-		end_2 = chat_2[2]
-
-		#logical test if chat 2 overlaps with chat 1
-		if (start_1 < end_2) and (start_2 < end_1):
-			concurrencies[convo_id_1].append(convo_id_2)
-
-#removes redundancy in values list by transforming it from list into set
 concurrency_2 = {}
-
+#removes redundancy in values list by transforming it from list into set
 for key, value in concurrencies.items():
 	concurrency_2[key] = set(value)
-print(concurrency_2)
 
 concurrency_count = {}
-
 for key, value in concurrency_2.items():
 	concurrency_count[key] = len(value)
-print(concurrency_count)
 
 #grouping chat_id's by number of overlaps
 concurrency_single = []
@@ -90,41 +50,15 @@ for key, value in concurrency_count.items():
 	else:
 		concurrency_many.append(key)
 
-print(concurrency_single)
-print(concurrency_double)
-print(concurrency_many)
+# For many concurrencies, I will check if chat_id is overlapping
+# the with the same chat multiple times or with multiple chats
 
-# For many concurrencies, I will check if chat_id is overlapping with 
-# the same chat multiple times or with  multiple chats
-# logic: if concurrency is 3, then A overlaps with B, B overlaps with C,
-# and C overlaps with A
+identified = identify_count(concurrency_many, concurrency_2)
 
-for chat_id in concurrency_many:
-	count = 2 
-	print(concurrency_2[chat_id])
-	print("heyyyyy")
-	for concurrent_chat in concurrency_2[chat_id]:
-		if concurrent_chat == chat_id:
-			# concurrent chat is concurrent to itself
-			continue
-		print(f"concurrent chat is {concurrent_chat}")
-		for key, value in concurrency_2.items():
-			print(f"key is {key}")
-			print(f"values are {value}")
-			if ((key == concurrent_chat) or (key == chat_id)):
-				print("same same same")
-				continue
-			else:
-				for x in value:
-					if x == concurrent_chat:
-						print("it's here?")
-						count = 3
-					else:
-						print('not in values')
-	if count == 3:
-		concurrency_triple.append(chat_id)
-	else:
-		concurrency_double.append(chat_id)
+for chat_id in identified[0]:
+	concurrency_double.append(chat_id)
+for chat_id in identified[1]:
+	concurrency_triple.append(chat_id)
 
 print(concurrency_single)
 print(concurrency_double)
